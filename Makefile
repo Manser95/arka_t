@@ -5,11 +5,11 @@ run:
 	poetry run uvicorn schema:app --reload
 
 fmt:
-	ruff check -s --fix --exit-zero .
+	poetry run ruff check -s --fix --exit-zero .
 
 lint list_strict:
-	mypy .
-	ruff check .
+	poetry run mypy .
+	poetry run ruff check .
 
 lint_fix: fmt lint
 

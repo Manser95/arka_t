@@ -19,7 +19,6 @@ class Context(BaseContext):
         self.db = db
 
 
-
 @strawberry.type
 class Author:
     name: str
@@ -33,7 +32,6 @@ class Book:
 
 @strawberry.type
 class Query:
-
     @strawberry.field
     async def books(
         self,
@@ -44,9 +42,37 @@ class Query:
     ) -> list[Book]:
         # TODO:
         # Do NOT use dataloaders
-        await info.context.db.execute("select 1")
-        return []
 
+        query = """
+            SELECT b.title, a.name
+            FROM books b
+            JOIN authors a ON b.author_id = a.id
+        """
+
+        conditions = []
+        params = {}
+
+        if author_ids:
+            author_ids_str = ",".join(map(str, author_ids))
+            conditions.append(f"b.author_id IN ({author_ids_str})")
+        if search:
+            conditions.append("(b.title ILIKE :search OR a.name ILIKE :search)")
+            params["search"] = f"%{search}%"
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        if limit:
+            query += " LIMIT :limit"
+            params["limit"] = limit  # type: ignore
+
+        rows = await info.context.db.fetch_all(query, params)
+
+        books = [
+            Book(title=row["title"], author=Author(name=row["name"])) for row in rows
+        ]
+
+        return books
 
 
 CONN_TEMPLATE = "postgresql+asyncpg://{user}:{password}@{host}:{port}/{name}"
@@ -61,6 +87,7 @@ db = Database(
     ),
 )
 
+
 @asynccontextmanager
 async def lifespan(
     app: FastAPI,
@@ -69,6 +96,7 @@ async def lifespan(
     async with db:
         yield
     await db.disconnect()
+
 
 schema = strawberry.Schema(query=Query)
 graphql_app = GraphQLRouter(  # type: ignore
