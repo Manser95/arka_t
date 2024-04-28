@@ -1,0 +1,18 @@
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: postgres.dockerfile
+    container_name: ${POSTGRES_CONTAINER_NAME}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB_NAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: ${PGDATA}
+    volumes:
+       - dbarka:/data/postgres-arka
+       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "6432:5432"
+volumes:
+    dbarka:
